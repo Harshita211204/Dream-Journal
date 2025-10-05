@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dream Weaver AI Journal (Local Storage)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        /* Custom Theme Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #03001C; /* Deep space dark blue */
+            background-image: linear-gradient(135deg, #03001C 0%, #15003D 50%, #301E67 100%);
+            min-height: 100vh;
+            color: #E0BBFF; /* Soft lavender text */
+        }
+        
+        /* Glowing/Misty Effect for Cards and Buttons */
+        .glowing-card {
+            background: rgba(48, 30, 103, 0.4); /* Semi-transparent dark purple */
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(112, 60, 255, 0.3);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 30px rgba(112, 60, 255, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .glowing-button {
+            background-image: linear-gradient(45deg, #703CFF 0%, #FF6AC1 100%);
+            color: white;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 106, 193, 0.6);
+        }
+
+        .glowing-button:hover {
+            box-shadow: 0 0 25px rgba(255, 106, 193, 0.8), 0 0 5px rgba(112, 60, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        /* Microphone Icon Styling */
+        .mic-icon {
+            animation: pulse-glow 1.5s infinite alternate;
+        }
+
+        .recording {
+            color: #FF6AC1; /* Pink for recording state */
+            box-shadow: 0 0 20px rgba(255, 106, 193, 1);
+        }
+
+        @keyframes pulse-glow {
+            from { opacity: 0.6; }
+            to { opacity: 1; }
+        }
+
+        /* Canvas container styles */
+        #visualizationCanvas {
+            border-radius: 1rem;
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <div id="app" class="max-w-7xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-5xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">
+                Dream Weaver
+            </h1>
+            <p class="text-lg text-purple-300">Speak Your Subconscious. See Your Dreams. (Local Session)</p>
+        </header>
+
+        <!-- Main Recording and Visualization Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            
+            <!-- Recording Card -->
+            <div id="recording-card" class="glowing-card rounded-2xl p-6 h-full flex flex-col items-center justify-between">
+                <h2 class="text-2xl font-bold mb-4 text-purple-200">Record Your Dream</h2>
+                
+                <button id="recordBtn" class="w-24 h-24 rounded-full glowing-button flex items-center justify-center shadow-lg transition-all transform hover:scale-105" onclick="toggleRecording()">
+                    <!-- Mic Icon (Phosphor Icons - copied SVG for single file) -->
+                    <svg id="micState" xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256" class="mic-icon">
+                        <path d="M128,176a48,48,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48,48,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0ZM208,128a8,8,0,0,0-16,0,64.1,64.1,0,0,1-64,64,8,8,0,0,0,0,16,80.1,80.1,0,0,0,80-80A8,8,0,0,0,208,128ZM48,128a80.1,80.1,0,0,0,80,80,8,8,0,0,0,0-16,64.1,64.1,0,0,1-64-64A8,8,0,0,0,48,128Z"></path>
+                    </svg>
+                </button>
+                
+                <p id="statusMessage" class="text-purple-400 mt-4 h-10">Press the microphone to start speaking...</p>
+
+                <div class="w-full mt-6">
+                    <h3 class="font-semibold text-purple-300 mb-2">Transcript:</h3>
+                    <div id="transcript" class="w-full min-h-[100px] glowing-card rounded-lg p-3 text-sm text-purple-100/80 overflow-y-auto">
+                        Your transcribed dream will appear here after recording stops.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization Card -->
+            <div class="glowing-card rounded-2xl p-6 flex flex-col h-full">
+                <h2 class="text-2xl font-bold mb-4 text-purple-200">AI Dream Visualization</h2>
+                
+                <!-- Loading/Message Area -->
+                <div id="loader" class="text-center p-4 bg-purple-900/50 rounded-lg hidden">
+                    <div class="animate-spin inline-block w-8 h-8 border-4 border-purple-300 border-t-transparent rounded-full"></div>
+                    <p class="mt-2 text-purple-300">Analyzing subconscious patterns... Generating visual scene...</p>
+                </div>
+
+                <!-- Canvas for Animation -->
+                <div class="flex-grow min-h-[300px] relative">
+                    <canvas id="visualizationCanvas" width="500" height="400" class="shadow-xl"></canvas>
+                    <p id="dreamTitleDisplay" class="absolute top-4 left-4 text-white text-xl font-bold p-2 bg-black/50 rounded-lg hidden">Dream Title</p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex justify-center space-x-4 mt-6">
+                    <button id="saveBtn" class="glowing-button px-6 py-2 rounded-full font-semibold disabled:opacity-50" onclick="saveDream()" disabled>
+                        <svg class="inline w-5 h-5 mr-1 -mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        Save to Gallery
+                    </button>
+                    <!-- Download button commented out as it was in the original and not part of the current request. -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Dream Gallery Section -->
+        <div class="mt-12">
+            <h2 class="text-3xl font-bold mb-6 text-purple-200 text-center">Your Dream Gallery (Local Session)</h2>
+            <div id="dreamGallery" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dream cards will be inserted here -->
+                <p id="galleryPlaceholder" class="lg:col-span-3 text-center text-purple-400 p-8 glowing-card rounded-xl">
+                    No dreams saved yet. Record and save your first dream!
+                </p>
+            </div>
+        </div>
+    </div>
+   <script src="journa.js"></script>
+   <script src="dream.js"></script>
+    
+</body>
+</html>
